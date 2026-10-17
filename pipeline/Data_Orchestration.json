@@ -1,0 +1,52 @@
+{
+	"name": "Data_Orchestration",
+	"properties": {
+		"activities": [
+			{
+				"name": "Execute API Ingestion",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "API_Ingestion",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Execute Incremental Load",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Execute API Ingestion",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Incremental_Data_Load",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"folder": {
+			"name": "Zero To Pro"
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-10-15T18:38:58Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

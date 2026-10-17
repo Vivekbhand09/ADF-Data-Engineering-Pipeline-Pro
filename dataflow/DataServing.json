@@ -1,0 +1,261 @@
+{
+	"name": "DataServing",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "ls_datalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "DimAirlines"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_datalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "DimFlights"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_datalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "FactBookings"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "ls_datalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sinkFactBooking"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_datalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_datalake",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "AirlineJoin"
+				},
+				{
+					"name": "selectCols"
+				},
+				{
+					"name": "aggregateAirline"
+				},
+				{
+					"name": "Ranking"
+				},
+				{
+					"name": "filterTop5"
+				},
+				{
+					"name": "alterFactBookings"
+				},
+				{
+					"name": "derivedTotalDuration"
+				},
+				{
+					"name": "aggregateAirlines"
+				},
+				{
+					"name": "selectAirline"
+				},
+				{
+					"name": "alterRow1"
+				},
+				{
+					"name": "alterRow2"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          airline_id as short,",
+				"          airline_name as string,",
+				"          country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silver',",
+				"     folderPath: 'DimAirline') ~> DimAirlines",
+				"source(output(",
+				"          flight_id as short,",
+				"          flight_number as string,",
+				"          departure_timestamp as string,",
+				"          arrival_timestamp as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silver',",
+				"     folderPath: 'DimFlight') ~> DimFlights",
+				"source(output(",
+				"          booking_id as integer,",
+				"          passenger_id as integer,",
+				"          flight_id as integer,",
+				"          airline_id as integer,",
+				"          origin_airport_id as integer,",
+				"          destination_airport_id as integer,",
+				"          booking_date as date,",
+				"          ticket_cost as integer,",
+				"          flight_duration_mins as integer,",
+				"          checkin_status as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silver',",
+				"     folderPath: 'FactBooking') ~> FactBookings",
+				"FactBookings, DimAirlines join(FactBookings@airline_id == DimAirlines@airline_id,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> AirlineJoin",
+				"AirlineJoin select(mapColumn(",
+				"          booking_id,",
+				"          passenger_id,",
+				"          flight_id,",
+				"          airline_id = FactBookings@airline_id,",
+				"          origin_airport_id,",
+				"          destination_airport_id,",
+				"          booking_date,",
+				"          ticket_cost,",
+				"          flight_duration_mins,",
+				"          checkin_status,",
+				"          airline_name,",
+				"          country",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectCols",
+				"selectCols aggregate(groupBy(airline_name),",
+				"     Total_Sales = sum(ticket_cost)) ~> aggregateAirline",
+				"aggregateAirline window(desc(Total_Sales, true),",
+				"     Top = denseRank()) ~> Ranking",
+				"Ranking filter(Top < 6) ~> filterTop5",
+				"filterTop5 alterRow(upsertIf(1==1)) ~> alterFactBookings",
+				"DimFlights derive(flight_duration_minutes = iif(\r",
+				"    (\r",
+				"        toInteger(left(arrival_timestamp, 2)) * 60\r",
+				"        + toInteger(right(arrival_timestamp, 2))\r",
+				"    ) <\r",
+				"    (\r",
+				"        toInteger(left(departure_timestamp, 2)) * 60\r",
+				"        + toInteger(right(departure_timestamp, 2))\r",
+				"    ),\r",
+				"    (\r",
+				"        toInteger(left(arrival_timestamp, 2)) * 60\r",
+				"        + toInteger(right(arrival_timestamp, 2))\r",
+				"    ) + 1440 -\r",
+				"    (\r",
+				"        toInteger(left(departure_timestamp, 2)) * 60\r",
+				"        + toInteger(right(departure_timestamp, 2))\r",
+				"    ),\r",
+				"    (\r",
+				"        toInteger(left(arrival_timestamp, 2)) * 60\r",
+				"        + toInteger(right(arrival_timestamp, 2))\r",
+				"    ) -\r",
+				"    (\r",
+				"        toInteger(left(departure_timestamp, 2)) * 60\r",
+				"        + toInteger(right(departure_timestamp, 2))\r",
+				"    )\r",
+				")) ~> derivedTotalDuration",
+				"selectAirline aggregate(groupBy(country),",
+				"     MaxAirlineCountrywise = count(airline_name)) ~> aggregateAirlines",
+				"DimAirlines select(mapColumn(",
+				"          airline_name,",
+				"          country",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectAirline",
+				"aggregateAirlines alterRow(upsertIf(1==1)) ~> alterRow1",
+				"derivedTotalDuration alterRow(upsertIf(1==1)) ~> alterRow2",
+				"alterFactBookings sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     compressionType: 'snappy',",
+				"     compressionLevel: 'Fastest',",
+				"     fileSystem: 'gold',",
+				"     folderPath: 'Factbooking',",
+				"     overwrite: true,",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['airline_name'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sinkFactBooking",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     compressionType: 'snappy',",
+				"     compressionLevel: 'Fastest',",
+				"     fileSystem: 'gold',",
+				"     folderPath: 'DimAirline',",
+				"     overwrite: true,",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['country'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink1",
+				"alterRow2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     compressionType: 'snappy',",
+				"     compressionLevel: 'Fastest',",
+				"     fileSystem: 'gold',",
+				"     folderPath: 'DimFlight',",
+				"     overwrite: true,",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['flight_id'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink2"
+			]
+		}
+	}
+}
