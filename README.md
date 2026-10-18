@@ -357,7 +357,7 @@ Runs after the data copy succeeds:
 ### Order matters
 The watermark is updated **only after the data copy succeeds**. If the copy fails, `lastload` stays the same, so the next run retries the same window and no data is lost.
 
-![Self-Hosted IR running](Data/SS/incr.png)
+![Self-Hosted IR running](Data/SS/incrload.png)
 
 ---
 
