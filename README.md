@@ -12,31 +12,6 @@
 
 ---
 
-## Table of Contents
-
-1. [Project Overview](#1-project-overview)
-2. [Architecture](#2-architecture)
-3. [Tech Stack](#3-tech-stack)
-4. [Azure Environment Setup](#4-azure-environment-setup)
-5. [Part 1: On-Premises to Azure Migration](#5-part-1-on-premises-to-azure-migration)
-6. [Part 2: Dynamic Pipeline for Multiple Files](#6-part-2-dynamic-pipeline-for-multiple-files)
-7. [Part 3: Dynamic Schema Mapping](#7-part-3-dynamic-schema-mapping)
-8. [Part 4: REST API Ingestion](#8-part-4-rest-api-ingestion)
-9. [Part 5: Azure SQL Database Setup](#9-part-5-azure-sql-database-setup)
-10. [Part 6: Incremental Data Load](#10-part-6-incremental-data-load)
-11. [Part 7: Pipeline Orchestration](#11-part-7-pipeline-orchestration)
-12. [Part 8: Automated Email Alerts](#12-part-8-automated-email-alerts)
-13. [Part 9: Silver Layer](#13-part-9-silver-layer)
-14. [Part 10: Gold Layer](#14-part-10-gold-layer)
-15. [Final Data Lake Layout](#15-final-data-lake-layout)
-16. [Repository Structure](#16-repository-structure)
-17. [Challenges and Design Decisions](#17-challenges-and-design-decisions)
-18. [Key Learnings](#18-key-learnings)
-19. [Future Improvements](#19-future-improvements)
-20. [Author](#20-author)
-
----
-
 ## 1. Project Overview
 
 ### The scenario
