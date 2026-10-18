@@ -151,6 +151,8 @@ Debugged the pipeline and it succeeded. The Parquet file appeared in the `bronze
 ### What I learned
 The Self-Hosted IR only needs **outbound** connectivity, so no inbound firewall ports need to be opened. It is the standard way to build hybrid pipelines safely.
 
+![Self-Hosted IR running](Data/SS/onprem_ingestion.png)
+
 ---
 
 ## 6. Part 2: Dynamic Pipeline for Multiple Files
@@ -245,6 +247,8 @@ Calls the GitHub URL first. This validates that the endpoint is reachable before
 ### Result
 The pipeline ran successfully and the API data landed in ADLS Gen2.
 
+![Self-Hosted IR running](Data/SS/api_ingestion.png)
+
 ---
 
 ## 9. Part 5: Azure SQL Database Setup
@@ -272,6 +276,8 @@ The pipeline ran successfully and the API data landed in ADLS Gen2.
 ### What I created
 - An Azure SQL Database.
 - Table **`dbo.FactBookings`** with sample records and a **`booking_date`** column, which becomes the **watermark column** for incremental loading in the next part.
+
+![Self-Hosted IR running](Data/SS/sqldb.png)
 
 ---
 
@@ -351,6 +357,8 @@ Runs after the data copy succeeds:
 ### Order matters
 The watermark is updated **only after the data copy succeeds**. If the copy fails, `lastload` stays the same, so the next run retries the same window and no data is lost.
 
+![Self-Hosted IR running](Data/SS/incr.png)
+
 ---
 
 ## 11. Part 7: Pipeline Orchestration
@@ -373,6 +381,8 @@ Master pipeline
 - **Reusability:** the same child pipeline can be called from different parents.
 - **Control:** the order Bronze, Silver, Gold is enforced through activity dependencies.
 - **One entry point** to run, schedule or monitor the entire flow.
+
+  ![Self-Hosted IR running](Data/SS/data_orchestration.png)
 
 ---
 
@@ -417,6 +427,12 @@ I tested both scenarios. A **success email** arrives when the pipeline completes
 
 ### What I learned
 Dynamic content such as `pipeline().RunId` and `activity('...').error.message` makes alerts genuinely useful. The activity name inside `activity('...')` must match the real activity name exactly.
+
+![Self-Hosted IR running](Data/SS/logic2.png)
+
+![Self-Hosted IR running](Data/SS/logic3.png)
+
+![Self-Hosted IR running](Data/SS/logic4.png)
 
 ---
 
@@ -477,6 +493,10 @@ Source ➜ Derived Column ➜ Alter Row ➜ Sink (silver/DimAirports)
 
 ### Result
 I debugged the pipeline and it succeeded. Each table was written as a **Delta** table in its own folder in the `silver` container. The whole layer was built using only the **ADF Data Flow activity**, with no external code.
+
+![Self-Hosted IR running](Data/SS/silver1.png)
+
+![Self-Hosted IR running](Data/SS/silver2.png)
 
 ---
 
@@ -546,6 +566,10 @@ Source (Silver FactBooking)
 
 ### Result
 I debugged the pipeline and it succeeded. The Gold layer now holds three Delta tables, ready to power dashboards.
+
+![Self-Hosted IR running](Data/SS/gold.png)
+
+![Self-Hosted IR running](Data/SS/gold2.png)
 
 ---
 
